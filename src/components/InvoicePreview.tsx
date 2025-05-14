@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FilePdf } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import { Invoice } from '@/types';
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
 import { formatDate } from '@/utils/formatters';
@@ -21,7 +21,7 @@ const InvoicePreview = ({ invoice }: InvoicePreviewProps) => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Podgląd faktury</CardTitle>
         <Button onClick={handleDownloadPDF}>
-          <FilePdf className="h-4 w-4 mr-2" />
+          <FileDown className="h-4 w-4 mr-2" />
           Pobierz PDF
         </Button>
       </CardHeader>

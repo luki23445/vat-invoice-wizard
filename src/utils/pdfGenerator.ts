@@ -1,12 +1,15 @@
 
 import { Invoice } from '@/types';
-import { jsPDF } from "jspdf";
+import jsPDF from "jspdf";
 import 'jspdf-autotable';
 
 // Need to add the declaration for autoTable
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: (options: any) => jsPDF;
+    lastAutoTable: {
+      finalY: number;
+    };
   }
 }
 
@@ -50,7 +53,7 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   });
   
   // Add totals
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  const finalY = doc.lastAutoTable.finalY + 10;
   doc.text(`Suma netto: ${invoice.total.net.toFixed(2)} zł`, 140, finalY);
   doc.text(`Suma VAT: ${invoice.total.vat.toFixed(2)} zł`, 140, finalY + 5);
   doc.text(`Suma brutto: ${invoice.total.gross.toFixed(2)} zł`, 140, finalY + 10);
