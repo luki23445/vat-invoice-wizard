@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Client } from '@/types';
 import { detectCountry } from '@/utils/vatCalculator';
+import { ClipboardPaste } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 interface ClientFormProps {
   onClientChange: (client: Client) => void;
@@ -77,8 +79,24 @@ const ClientForm = ({ onClientChange }: ClientFormProps) => {
     return client;
   };
 
-  const setExampleClient = () => {
-    setClientText("José Gregorio López Pulido\nC/Tijarafe N 44 A\nSANTA URSULA\n38390 Canarias Santa Cruz de Tenerife\nHiszpania\n+34 649 77 13 46");
+  const handlePasteFromClipboard = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (clipboardText) {
+        setClientText(clipboardText);
+        toast({
+          title: "Wklejono dane",
+          description: "Dane klienta zostały wklejone ze schowka",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Nie udało się wkleić danych ze schowka. Sprawdź uprawnienia przeglądarki.",
+        variant: "destructive"
+      });
+      console.error("Clipboard error:", error);
+    }
   };
 
   return (
@@ -100,10 +118,11 @@ const ClientForm = ({ onClientChange }: ClientFormProps) => {
         
         <Button 
           variant="outline" 
-          onClick={setExampleClient} 
-          className="w-full"
+          onClick={handlePasteFromClipboard} 
+          className="w-full flex items-center justify-center"
         >
-          Wstaw przykładowe dane
+          <ClipboardPaste className="mr-2" size={16} />
+          Wklej
         </Button>
       </CardContent>
     </Card>
