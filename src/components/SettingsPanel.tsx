@@ -65,7 +65,11 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
     
     const updatedRates = [...countryVatRates, newCountry];
     setCountryVatRates(updatedRates);
-    saveSettings({ countryVatRates: updatedRates });
+    saveSettings({ 
+      countryVatRates: updatedRates,
+      sellerDetails,
+      defaultProducts
+    });
     setNewCountry({ name: '', vatRate: 0 });
     
     toast({
@@ -76,7 +80,11 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
 
   const handleUpdateCountry = (index: number) => {
     const updatedRates = [...countryVatRates];
-    saveSettings({ countryVatRates: updatedRates });
+    saveSettings({ 
+      countryVatRates: updatedRates,
+      sellerDetails,
+      defaultProducts
+    });
     setEditMode(null);
     
     toast({
@@ -99,7 +107,11 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
     
     const updatedRates = countryVatRates.filter((_, i) => i !== index);
     setCountryVatRates(updatedRates);
-    saveSettings({ countryVatRates: updatedRates });
+    saveSettings({ 
+      countryVatRates: updatedRates,
+      sellerDetails,
+      defaultProducts
+    });
     
     toast({
       title: "Sukces",

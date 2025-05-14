@@ -15,12 +15,12 @@ interface ProductFormProps {
   defaultProducts: { name: string }[];
 }
 
-const ProductForm = ({ client, countryVatRates, onProductsChange, defaultProducts }: ProductFormProps) => {
+const ProductForm = ({ client, countryVatRates, onProductsChange, defaultProducts = [] }: ProductFormProps) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   // Initialize with default products
   useEffect(() => {
-    if (defaultProducts.length > 0 && products.length === 0) {
+    if (defaultProducts && defaultProducts.length > 0 && products.length === 0) {
       const initialProducts = defaultProducts.map(p => ({
         name: p.name,
         grossPrice: 0,
@@ -30,6 +30,16 @@ const ProductForm = ({ client, countryVatRates, onProductsChange, defaultProduct
         quantity: 1
       }));
       setProducts(initialProducts);
+    } else if ((!defaultProducts || defaultProducts.length === 0) && products.length === 0) {
+      // If no default products, initialize with one empty product
+      setProducts([{
+        name: "Nowy produkt",
+        grossPrice: 0,
+        netPrice: 0,
+        vatAmount: 0,
+        vatRate: 0,
+        quantity: 1
+      }]);
     }
   }, [defaultProducts]);
 
