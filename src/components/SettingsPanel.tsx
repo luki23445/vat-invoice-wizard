@@ -28,13 +28,18 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
   // Load settings from localStorage
   useEffect(() => {
     const settings = getSettings();
-    setCountryVatRates(settings.countryVatRates);
-    setSellerDetails(settings.sellerDetails);
+    setCountryVatRates(settings.countryVatRates || DEFAULT_SETTINGS.countryVatRates);
+    setSellerDetails(settings.sellerDetails || DEFAULT_SETTINGS.sellerDetails);
     setDefaultProducts(settings.defaultProducts || DEFAULT_SETTINGS.defaultProducts);
   }, []);
 
   // Update parent when settings change
   useEffect(() => {
+    // Ensure all required data exists before updating
+    if (!countryVatRates || !sellerDetails || !defaultProducts) {
+      return;
+    }
+    
     const settings: AppSettings = { 
       countryVatRates, 
       sellerDetails,
@@ -42,6 +47,13 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
     };
     onSettingsChange(settings);
   }, [countryVatRates, sellerDetails, defaultProducts, onSettingsChange]);
+
+  // Check and fix seller details if they're incomplete
+  useEffect(() => {
+    if (!sellerDetails || Object.keys(sellerDetails).length === 0) {
+      setSellerDetails(DEFAULT_SETTINGS.sellerDetails);
+    }
+  }, [sellerDetails]);
 
   const handleAddCountry = () => {
     if (!newCountry.name.trim()) {
@@ -149,14 +161,14 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
   };
 
   const handleSellerDetailsChange = (field: keyof SellerDetails, value: string) => {
-    setSellerDetails(prev => {
-      const updated = { ...prev, [field]: value };
-      saveSettings({ 
-        countryVatRates, 
-        sellerDetails: updated,
-        defaultProducts
-      });
-      return updated;
+    // Create a copy to avoid direct state mutation
+    const updatedDetails = { ...sellerDetails, [field]: value };
+    setSellerDetails(updatedDetails);
+    
+    saveSettings({ 
+      countryVatRates, 
+      sellerDetails: updatedDetails,
+      defaultProducts
     });
   };
 
@@ -244,7 +256,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
           
           <TabsContent value="vat" className="space-y-4">
             <div className="space-y-4">
-              {countryVatRates.map((country, index) => (
+              {countryVatRates && countryVatRates.map((country, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <div className="flex-grow">{country.name}</div>
                   
@@ -325,7 +337,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
                 <Label htmlFor="sellerName">Nazwa firmy</Label>
                 <Input
                   id="sellerName"
-                  value={sellerDetails.name}
+                  value={sellerDetails?.name || ''}
                   onChange={(e) => handleSellerDetailsChange('name', e.target.value)}
                   placeholder="Nazwa Twojej Firmy"
                 />
@@ -335,7 +347,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
                 <Label htmlFor="sellerAddress">Adres</Label>
                 <Textarea
                   id="sellerAddress"
-                  value={sellerDetails.address}
+                  value={sellerDetails?.address || ''}
                   onChange={(e) => handleSellerDetailsChange('address', e.target.value)}
                   placeholder="ul. Przykładowa 1, 00-001 Warszawa"
                   rows={3}
@@ -346,7 +358,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
                 <Label htmlFor="sellerTaxId">NIP</Label>
                 <Input
                   id="sellerTaxId"
-                  value={sellerDetails.taxId}
+                  value={sellerDetails?.taxId || ''}
                   onChange={(e) => handleSellerDetailsChange('taxId', e.target.value)}
                   placeholder="1234567890"
                 />
@@ -356,7 +368,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
                 <Label htmlFor="sellerPhone">Telefon</Label>
                 <Input
                   id="sellerPhone"
-                  value={sellerDetails.phone || ''}
+                  value={sellerDetails?.phone || ''}
                   onChange={(e) => handleSellerDetailsChange('phone', e.target.value)}
                   placeholder="+48 123 456 789"
                 />
@@ -366,7 +378,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
                 <Label htmlFor="sellerEmail">Email</Label>
                 <Input
                   id="sellerEmail"
-                  value={sellerDetails.email || ''}
+                  value={sellerDetails?.email || ''}
                   onChange={(e) => handleSellerDetailsChange('email', e.target.value)}
                   placeholder="kontakt@twojafirma.pl"
                 />
@@ -376,7 +388,7 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
           
           <TabsContent value="products" className="space-y-4">
             <div className="space-y-2">
-              {defaultProducts.map((product, index) => (
+              {defaultProducts && defaultProducts.map((product, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   {editProductMode === index ? (
                     <>

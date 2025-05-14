@@ -41,12 +41,39 @@ export const getInvoiceById = (id: string): Invoice | null => {
 };
 
 // Save settings to localStorage
-export const saveSettings = (settings: AppSettings): void => {
-  localStorage.setItem('invoiceAppSettings', JSON.stringify(settings));
+export const saveSettings = (settings: Partial<AppSettings>): void => {
+  // Get current settings first
+  const currentSettings = getSettings();
+  
+  // Merge with new settings, ensuring we don't lose any properties
+  const updatedSettings: AppSettings = {
+    countryVatRates: settings.countryVatRates || currentSettings.countryVatRates,
+    sellerDetails: settings.sellerDetails || currentSettings.sellerDetails,
+    defaultProducts: settings.defaultProducts || currentSettings.defaultProducts
+  };
+  
+  localStorage.setItem('invoiceAppSettings', JSON.stringify(updatedSettings));
 };
 
-// Get settings from localStorage
+// Get settings from localStorage with proper fallbacks
 export const getSettings = (): AppSettings => {
-  const settingsJson = localStorage.getItem('invoiceAppSettings');
-  return settingsJson ? JSON.parse(settingsJson) : DEFAULT_SETTINGS;
+  try {
+    const settingsJson = localStorage.getItem('invoiceAppSettings');
+    
+    if (!settingsJson) {
+      return DEFAULT_SETTINGS;
+    }
+    
+    const parsedSettings = JSON.parse(settingsJson) as Partial<AppSettings>;
+    
+    // Ensure all required properties are present
+    return {
+      countryVatRates: parsedSettings.countryVatRates || DEFAULT_SETTINGS.countryVatRates,
+      sellerDetails: parsedSettings.sellerDetails || DEFAULT_SETTINGS.sellerDetails,
+      defaultProducts: parsedSettings.defaultProducts || DEFAULT_SETTINGS.defaultProducts
+    };
+  } catch (error) {
+    console.error('Error parsing settings from localStorage:', error);
+    return DEFAULT_SETTINGS;
+  }
 };
