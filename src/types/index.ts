@@ -32,6 +32,16 @@ export interface CountryVat {
   vatRate: number;
 }
 
+export interface SellerDetails {
+  name: string;
+  address: string;
+  taxId: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface AppSettings {
   countryVatRates: CountryVat[];
+  sellerDetails: SellerDetails;
+  defaultProducts: { name: string }[];
 }

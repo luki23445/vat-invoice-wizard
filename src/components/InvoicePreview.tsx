@@ -2,28 +2,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FileDown } from 'lucide-react';
+import { FileDown, Printer } from 'lucide-react';
 import { Invoice } from '@/types';
 import { generateInvoicePDF } from '@/utils/pdfGenerator';
 import { formatDate } from '@/utils/formatters';
 
 interface InvoicePreviewProps {
   invoice: Invoice;
+  sellerDetails: any;
 }
 
-const InvoicePreview = ({ invoice }: InvoicePreviewProps) => {
+const InvoicePreview = ({ invoice, sellerDetails }: InvoicePreviewProps) => {
   const handleDownloadPDF = () => {
-    generateInvoicePDF(invoice);
+    generateInvoicePDF(invoice, sellerDetails);
+  };
+  
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="print:shadow-none print:border-none">
+      <CardHeader className="flex flex-row items-center justify-between print:hidden">
         <CardTitle>Podgląd faktury</CardTitle>
-        <Button onClick={handleDownloadPDF}>
-          <FileDown className="h-4 w-4 mr-2" />
-          Pobierz PDF
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Drukuj
+          </Button>
+          <Button onClick={handleDownloadPDF}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Pobierz PDF
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="invoice-preview space-y-6">
@@ -42,12 +53,22 @@ const InvoicePreview = ({ invoice }: InvoicePreviewProps) => {
           
           <Separator />
           
-          <div>
-            <div className="font-medium mb-1">Dane klienta:</div>
-            <div>{invoice.client.name}</div>
-            <div className="whitespace-pre-line">{invoice.client.address}</div>
-            <div>{invoice.client.country}</div>
-            {invoice.client.taxId && <div>NIP: {invoice.client.taxId}</div>}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="font-medium mb-1">Sprzedawca:</div>
+              <div>{sellerDetails.name}</div>
+              <div className="whitespace-pre-line">{sellerDetails.address}</div>
+              <div>NIP: {sellerDetails.taxId}</div>
+              {sellerDetails.phone && <div>Tel: {sellerDetails.phone}</div>}
+              {sellerDetails.email && <div>Email: {sellerDetails.email}</div>}
+            </div>
+            <div>
+              <div className="font-medium mb-1">Nabywca:</div>
+              <div>{invoice.client.name}</div>
+              <div className="whitespace-pre-line">{invoice.client.address}</div>
+              <div>{invoice.client.country}</div>
+              {invoice.client.taxId && <div>NIP: {invoice.client.taxId}</div>}
+            </div>
           </div>
           
           <Separator />

@@ -1,5 +1,5 @@
 
-import { Invoice } from '@/types';
+import { Invoice, SellerDetails } from '@/types';
 import jsPDF from "jspdf";
 import 'jspdf-autotable';
 
@@ -13,7 +13,7 @@ declare module 'jspdf' {
   }
 }
 
-export const generateInvoicePDF = (invoice: Invoice): void => {
+export const generateInvoicePDF = (invoice: Invoice, sellerDetails: SellerDetails): void => {
   const doc = new jsPDF();
   
   // Add title
@@ -22,16 +22,46 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
   
   // Add invoice details
   doc.setFontSize(10);
-  doc.text(`Numer faktury: ${invoice.id}`, 15, 40);
-  doc.text(`Data wystawienia: ${invoice.date}`, 15, 45);
+  doc.text(`Numer faktury: ${invoice.id}`, 15, 35);
+  doc.text(`Data wystawienia: ${invoice.date}`, 15, 40);
+  
+  // Add seller details
+  doc.setFontSize(9);
+  doc.text('Sprzedawca:', 15, 50);
+  doc.text(sellerDetails.name, 15, 55);
+  
+  // Handle multiline address
+  const sellerAddressLines = sellerDetails.address.split('\n');
+  sellerAddressLines.forEach((line, i) => {
+    doc.text(line, 15, 60 + (i * 4));
+  });
+  
+  const sellerYPos = 60 + (sellerAddressLines.length * 4);
+  doc.text(`NIP: ${sellerDetails.taxId}`, 15, sellerYPos);
+  
+  if (sellerDetails.phone) {
+    doc.text(`Tel: ${sellerDetails.phone}`, 15, sellerYPos + 4);
+  }
+  
+  if (sellerDetails.email) {
+    doc.text(`Email: ${sellerDetails.email}`, 15, sellerYPos + (sellerDetails.phone ? 8 : 4));
+  }
   
   // Add client details
-  doc.text('Dane klienta:', 15, 55);
-  doc.text(`Nazwa: ${invoice.client.name}`, 15, 60);
-  doc.text(`Adres: ${invoice.client.address}`, 15, 65);
-  doc.text(`Kraj: ${invoice.client.country}`, 15, 70);
+  doc.text('Nabywca:', 105, 50);
+  doc.text(invoice.client.name, 105, 55);
+  
+  // Handle multiline address
+  const clientAddressLines = invoice.client.address.split('\n');
+  clientAddressLines.forEach((line, i) => {
+    doc.text(line, 105, 60 + (i * 4));
+  });
+  
+  const clientYPos = 60 + (clientAddressLines.length * 4);
+  doc.text(invoice.client.country, 105, clientYPos);
+  
   if (invoice.client.taxId) {
-    doc.text(`NIP: ${invoice.client.taxId}`, 15, 75);
+    doc.text(`NIP: ${invoice.client.taxId}`, 105, clientYPos + 4);
   }
   
   // Add products table
@@ -44,8 +74,10 @@ export const generateInvoicePDF = (invoice: Invoice): void => {
     `${product.grossPrice.toFixed(2)} zł`
   ]);
   
+  const tableYPos = Math.max(sellerYPos, clientYPos) + 15;
+  
   doc.autoTable({
-    startY: 85,
+    startY: tableYPos,
     head: [['Produkt', 'Ilość', 'Cena netto', 'VAT', 'Kwota VAT', 'Cena brutto']],
     body: tableData,
     theme: 'striped',

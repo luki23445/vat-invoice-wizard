@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Check, X } from 'lucide-react';
-import { CountryVat, AppSettings } from '@/types';
+import { CountryVat, AppSettings, SellerDetails } from '@/types';
 import { DEFAULT_SETTINGS, saveSettings, getSettings } from '@/utils/storage';
 import { toast } from '@/components/ui/use-toast';
 
@@ -18,18 +20,28 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
   const [countryVatRates, setCountryVatRates] = useState<CountryVat[]>([]);
   const [editMode, setEditMode] = useState<number | null>(null);
   const [newCountry, setNewCountry] = useState<CountryVat>({ name: '', vatRate: 0 });
+  const [sellerDetails, setSellerDetails] = useState<SellerDetails>(DEFAULT_SETTINGS.sellerDetails);
+  const [defaultProducts, setDefaultProducts] = useState<{ name: string }[]>([]);
+  const [newProduct, setNewProduct] = useState<string>('');
+  const [editProductMode, setEditProductMode] = useState<number | null>(null);
 
   // Load settings from localStorage
   useEffect(() => {
     const settings = getSettings();
     setCountryVatRates(settings.countryVatRates);
+    setSellerDetails(settings.sellerDetails);
+    setDefaultProducts(settings.defaultProducts || DEFAULT_SETTINGS.defaultProducts);
   }, []);
 
   // Update parent when settings change
   useEffect(() => {
-    const settings: AppSettings = { countryVatRates };
+    const settings: AppSettings = { 
+      countryVatRates, 
+      sellerDetails,
+      defaultProducts
+    };
     onSettingsChange(settings);
-  }, [countryVatRates, onSettingsChange]);
+  }, [countryVatRates, sellerDetails, defaultProducts, onSettingsChange]);
 
   const handleAddCountry = () => {
     if (!newCountry.name.trim()) {
@@ -107,7 +119,16 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
 
   const handleResetDefault = () => {
     setCountryVatRates(DEFAULT_SETTINGS.countryVatRates);
-    saveSettings(DEFAULT_SETTINGS);
+    setSellerDetails(DEFAULT_SETTINGS.sellerDetails);
+    setDefaultProducts(DEFAULT_SETTINGS.defaultProducts);
+    
+    const settings: AppSettings = { 
+      countryVatRates: DEFAULT_SETTINGS.countryVatRates, 
+      sellerDetails: DEFAULT_SETTINGS.sellerDetails,
+      defaultProducts: DEFAULT_SETTINGS.defaultProducts
+    };
+    
+    saveSettings(settings);
     
     toast({
       title: "Sukces",
@@ -115,91 +136,288 @@ const SettingsPanel = ({ onSettingsChange }: SettingsPanelProps) => {
     });
   };
 
+  const handleSellerDetailsChange = (field: keyof SellerDetails, value: string) => {
+    setSellerDetails(prev => {
+      const updated = { ...prev, [field]: value };
+      saveSettings({ 
+        countryVatRates, 
+        sellerDetails: updated,
+        defaultProducts
+      });
+      return updated;
+    });
+  };
+
+  const handleAddProduct = () => {
+    if (!newProduct.trim()) {
+      toast({
+        title: "Błąd",
+        description: "Nazwa produktu nie może być pusta",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (defaultProducts.some(product => product.name === newProduct)) {
+      toast({
+        title: "Błąd",
+        description: "Produkt o tej nazwie już istnieje",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const updatedProducts = [...defaultProducts, { name: newProduct }];
+    setDefaultProducts(updatedProducts);
+    saveSettings({ countryVatRates, sellerDetails, defaultProducts: updatedProducts });
+    setNewProduct('');
+    
+    toast({
+      title: "Sukces",
+      description: `Dodano produkt: ${newProduct}`,
+    });
+  };
+
+  const handleDeleteProduct = (index: number) => {
+    const updatedProducts = defaultProducts.filter((_, i) => i !== index);
+    setDefaultProducts(updatedProducts);
+    saveSettings({ countryVatRates, sellerDetails, defaultProducts: updatedProducts });
+    
+    toast({
+      title: "Sukces",
+      description: `Usunięto produkt: ${defaultProducts[index].name}`,
+    });
+  };
+
+  const handleProductNameChange = (index: number, value: string) => {
+    const updatedProducts = [...defaultProducts];
+    updatedProducts[index] = { name: value };
+    setDefaultProducts(updatedProducts);
+  };
+
+  const handleUpdateProduct = (index: number) => {
+    if (!defaultProducts[index].name.trim()) {
+      toast({
+        title: "Błąd",
+        description: "Nazwa produktu nie może być pusta",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    saveSettings({ countryVatRates, sellerDetails, defaultProducts });
+    setEditProductMode(null);
+    
+    toast({
+      title: "Sukces",
+      description: `Zaktualizowano nazwę produktu`,
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ustawienia stawek VAT</CardTitle>
+        <CardTitle>Ustawienia</CardTitle>
         <CardDescription>
-          Dodaj lub zmień domyślne stawki VAT dla poszczególnych krajów
+          Zarządzaj ustawieniami aplikacji do fakturowania
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-4">
-          {countryVatRates.map((country, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <div className="flex-grow">{country.name}</div>
-              
-              {editMode === index ? (
-                <>
+      <CardContent>
+        <Tabs defaultValue="vat" className="space-y-4">
+          <TabsList className="grid grid-cols-3 gap-4">
+            <TabsTrigger value="vat">Stawki VAT</TabsTrigger>
+            <TabsTrigger value="seller">Dane sprzedawcy</TabsTrigger>
+            <TabsTrigger value="products">Produkty</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="vat" className="space-y-4">
+            <div className="space-y-4">
+              {countryVatRates.map((country, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <div className="flex-grow">{country.name}</div>
+                  
+                  {editMode === index ? (
+                    <>
+                      <Input
+                        type="number"
+                        value={country.vatRate}
+                        onChange={(e) => handleRateChange(index, e.target.value)}
+                        className="w-20"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                      <Button size="icon" variant="ghost" onClick={() => handleUpdateCountry(index)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setEditMode(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-12 text-right">{country.vatRate}%</div>
+                      <Button size="icon" variant="ghost" onClick={() => setEditMode(index)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => handleDeleteCountry(index)}
+                        disabled={['Polska', 'Niemcy', 'Inne'].includes(country.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h4 className="text-sm font-medium mb-2">Dodaj nowy kraj</h4>
+              <div className="flex items-end space-x-2">
+                <div className="space-y-2 flex-grow">
+                  <Label htmlFor="countryName">Nazwa kraju</Label>
                   <Input
+                    id="countryName"
+                    value={newCountry.name}
+                    onChange={(e) => setNewCountry({...newCountry, name: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2 w-24">
+                  <Label htmlFor="vatRate">VAT %</Label>
+                  <Input
+                    id="vatRate"
                     type="number"
-                    value={country.vatRate}
-                    onChange={(e) => handleRateChange(index, e.target.value)}
-                    className="w-20"
+                    value={newCountry.vatRate}
+                    onChange={(e) => setNewCountry({...newCountry, vatRate: parseFloat(e.target.value) || 0})}
                     min="0"
                     max="100"
                     step="0.1"
                   />
-                  <Button size="icon" variant="ghost" onClick={() => handleUpdateCountry(index)}>
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => setEditMode(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="w-12 text-right">{country.vatRate}%</div>
-                  <Button size="icon" variant="ghost" onClick={() => setEditMode(index)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    onClick={() => handleDeleteCountry(index)}
-                    disabled={['Polska', 'Niemcy', 'Inne'].includes(country.name)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
+                </div>
+                <Button onClick={handleAddCountry}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Dodaj
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
-        
-        <Separator />
-        
-        <div>
-          <h4 className="text-sm font-medium mb-2">Dodaj nowy kraj</h4>
-          <div className="flex items-end space-x-2">
-            <div className="space-y-2 flex-grow">
-              <Label htmlFor="countryName">Nazwa kraju</Label>
-              <Input
-                id="countryName"
-                value={newCountry.name}
-                onChange={(e) => setNewCountry({...newCountry, name: e.target.value})}
-              />
+          </TabsContent>
+          
+          <TabsContent value="seller" className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sellerName">Nazwa firmy</Label>
+                <Input
+                  id="sellerName"
+                  value={sellerDetails.name}
+                  onChange={(e) => handleSellerDetailsChange('name', e.target.value)}
+                  placeholder="Nazwa Twojej Firmy"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sellerAddress">Adres</Label>
+                <Textarea
+                  id="sellerAddress"
+                  value={sellerDetails.address}
+                  onChange={(e) => handleSellerDetailsChange('address', e.target.value)}
+                  placeholder="ul. Przykładowa 1, 00-001 Warszawa"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sellerTaxId">NIP</Label>
+                <Input
+                  id="sellerTaxId"
+                  value={sellerDetails.taxId}
+                  onChange={(e) => handleSellerDetailsChange('taxId', e.target.value)}
+                  placeholder="1234567890"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sellerPhone">Telefon</Label>
+                <Input
+                  id="sellerPhone"
+                  value={sellerDetails.phone || ''}
+                  onChange={(e) => handleSellerDetailsChange('phone', e.target.value)}
+                  placeholder="+48 123 456 789"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sellerEmail">Email</Label>
+                <Input
+                  id="sellerEmail"
+                  value={sellerDetails.email || ''}
+                  onChange={(e) => handleSellerDetailsChange('email', e.target.value)}
+                  placeholder="kontakt@twojafirma.pl"
+                />
+              </div>
             </div>
-            <div className="space-y-2 w-24">
-              <Label htmlFor="vatRate">VAT %</Label>
-              <Input
-                id="vatRate"
-                type="number"
-                value={newCountry.vatRate}
-                onChange={(e) => setNewCountry({...newCountry, vatRate: parseFloat(e.target.value) || 0})}
-                min="0"
-                max="100"
-                step="0.1"
-              />
+          </TabsContent>
+          
+          <TabsContent value="products" className="space-y-4">
+            <div className="space-y-2">
+              {defaultProducts.map((product, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  {editProductMode === index ? (
+                    <>
+                      <Input
+                        value={product.name}
+                        onChange={(e) => handleProductNameChange(index, e.target.value)}
+                        className="flex-grow"
+                      />
+                      <Button size="icon" variant="ghost" onClick={() => handleUpdateProduct(index)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setEditProductMode(null)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex-grow">{product.name}</div>
+                      <Button size="icon" variant="ghost" onClick={() => setEditProductMode(index)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={() => handleDeleteProduct(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
-            <Button onClick={handleAddCountry}>
-              <Plus className="h-4 w-4 mr-1" />
-              Dodaj
-            </Button>
-          </div>
-        </div>
+            
+            <div className="flex items-end space-x-2">
+              <div className="space-y-2 flex-grow">
+                <Label htmlFor="newProduct">Nazwa produktu</Label>
+                <Input
+                  id="newProduct"
+                  value={newProduct}
+                  onChange={(e) => setNewProduct(e.target.value)}
+                  placeholder="Nowy produkt"
+                />
+              </div>
+              <Button onClick={handleAddProduct}>
+                <Plus className="h-4 w-4 mr-1" />
+                Dodaj
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
         
-        <Separator />
+        <Separator className="my-6" />
         
         <Button variant="outline" onClick={handleResetDefault} className="w-full">
           Przywróć domyślne ustawienia

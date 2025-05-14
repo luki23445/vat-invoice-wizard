@@ -7,6 +7,17 @@ export const DEFAULT_SETTINGS: AppSettings = {
     { name: 'Polska', vatRate: 23 },
     { name: 'Niemcy', vatRate: 19 },
     { name: 'Inne', vatRate: 0 }
+  ],
+  sellerDetails: {
+    name: 'Nazwa Twojej Firmy',
+    address: 'ul. Przykładowa 1, 00-001 Warszawa',
+    taxId: '1234567890',
+    phone: '+48 123 456 789',
+    email: 'kontakt@twojafirma.pl'
+  },
+  defaultProducts: [
+    { name: 'Spoiler' },
+    { name: 'Wysyłka' }
   ]
 };
 
